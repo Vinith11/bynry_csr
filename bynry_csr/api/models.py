@@ -2,10 +2,8 @@ from django.db import models
 import os
 from django.db.models import JSONField
 
-# Create your models here.
 
 def get_upload_path(instance, filename):
-    # Create path in format: attachments/service_request_id/filename
     return os.path.join('attachments', str(instance.service_request.id), filename)
 
 class ServiceRequestAttachment(models.Model):
@@ -55,10 +53,8 @@ class ServiceRequest(models.Model):
     def save(self, *args, **kwargs):
         is_new = not self.pk
         if is_new:
-            # For new records, set the initial status history before saving
             self.status_history = {}
         super().save(*args, **kwargs)
         if is_new:
-            # Update the status history with the submission date after the first save
             self.status_history['pending'] = self.submission_date.isoformat()
             super().save(update_fields=['status_history'])

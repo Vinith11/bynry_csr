@@ -40,7 +40,6 @@ def create_service_request(request):
         if field not in request.data:
             return Response({"error": f"'{field}' is required."}, status=status.HTTP_400_BAD_REQUEST)
     
-    # Handle both form-data and JSON requests
     data = {
         'user': request.data['user'],
         'service_type': request.data['service_type'],
@@ -49,9 +48,8 @@ def create_service_request(request):
     
     serializer = ServiceRequestSerializer(data=data)
     if serializer.is_valid():
-        service_request = serializer.save()  # Save the service request first
-        
-        # Handle multiple file uploads
+        service_request = serializer.save()  #
+
         files = request.FILES.getlist('attachments')
         if not files:
             return Response({"error": "No files uploaded."}, status=status.HTTP_400_BAD_REQUEST)
@@ -65,7 +63,6 @@ def create_service_request(request):
             attachment_serializer = ServiceRequestAttachmentSerializer(attachment, context={'request': request})
             attachments.append(attachment_serializer.data)
         
-        # Get updated service request with attachments
         updated_serializer = ServiceRequestSerializer(service_request, context={'request': request})
         response_data = updated_serializer.data
         response_data['message'] = "Service request created successfully"
@@ -101,7 +98,6 @@ def update_service_request_status(request, pk):
     new_status = request.data['status']
     current_status = service_request.status
     
-    # Validate status flow
     if current_status == 'resolved':
         return Response({"error": "Cannot change status of a resolved request."}, status=status.HTTP_400_BAD_REQUEST)
     elif current_status == 'in_progress' and new_status == 'pending':
@@ -111,11 +107,9 @@ def update_service_request_status(request, pk):
     elif current_status == 'in_progress' and new_status != 'resolved':
         return Response({"error": "From in_progress, status can only change to resolved."}, status=status.HTTP_400_BAD_REQUEST)
     
-    # Update status and status history
     service_request.status = new_status
     service_request.status_history[new_status] = timezone.now().isoformat()
-    
-    # Set resolution date if status is changed to resolved
+
     if new_status == 'resolved':
         service_request.resolution_date = timezone.now()
     
@@ -130,7 +124,7 @@ def update_service_request_status(request, pk):
 def delete_service_request(request, pk):
     try:
         service_request = ServiceRequest.objects.get(pk=pk)
-        # Delete the associated media folder
+
         folder_path = os.path.join(settings.MEDIA_ROOT, 'attachments', str(pk))
         if os.path.exists(folder_path):
             shutil.rmtree(folder_path)
@@ -144,7 +138,6 @@ def filter_service_requests(request):
     service_type = request.query_params.get('service_type', '')
     status = request.query_params.get('status', '')
 
-    # Filter based on service_type and status
     if service_type and status:
         requests = ServiceRequest.objects.filter(service_type=service_type, status=status)
     elif service_type:
